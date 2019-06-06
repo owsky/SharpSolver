@@ -29,7 +29,7 @@ let monomial_degree (m : monomial) : int =
 let monomial_negate (m : monomial) : monomial =
     match m with
     | Monomial (coeff, deg) -> Monomial (-coeff, deg)
-    
+
 let polynomial_degree (p : polynomial) : int =
         match p with
         | Polynomial p -> let rec monList p n =
@@ -38,7 +38,7 @@ let polynomial_degree (p : polynomial) : int =
                                             else monList xs n
                                | [] -> n
                            in monList p 0
-     
+
 
 let polynomial_negate (p : polynomial) : polynomial =
     match p with
@@ -52,15 +52,11 @@ let normalized_polynomial_degree (np : normalized_polynomial) : int =
     match np with
     | NormalizedPolynomial np -> np.Length - 1
 
-                                                                          ////////////////////////////////////
-                                                                         ////// FUNZIONI PER NORMALIZE //////
-                                                                        ////////////////////////////////////
-
 let monomial_coeff (m : monomial) : rational =
         match m with
         | Monomial (coeff, deg) -> coeff
 
-let rec sommaSimili l =                                                //somma tutti i monomi simili; necessita di una lista già ordinata
+let rec sumSimilar l =
     let rec aux l a = match l with
                         | [] -> []
                         | [x] -> [Monomial (a+(monomial_coeff x), monomial_degree x)]
@@ -68,10 +64,10 @@ let rec sommaSimili l =                                                //somma t
                         | x::y::xs -> (aux (y::xs) (a+(monomial_coeff x)))
     in aux l 0Q
 
-let rec ordina l =                                                      //ordina gli elementi della lista per grado
+let rec sortList l =
     List.sortBy (fun elem -> monomial_degree elem) l
 
-let pos l =                                                             //inserisce entry nulle per rispettare l'ordine dei gradi nel polinomio normalizzato
+let pos l =
     let rec aux lst i =
         match lst with
         | [] -> []
@@ -79,49 +75,49 @@ let pos l =                                                             //inseri
                    else x::(aux xs (i+1))
     in aux l 0
 
-let rec rimuoviNull l =                                                 //rimuove tutti i monomi più significativi con coefficiente pari a 0
+let rec removeNull l =
     match List.rev l with
     | [] -> []
     | [x] -> [x]
-    | x::xs when x = 0Q -> rimuoviNull xs
+    | x::xs when x = 0Q -> removeNull xs
     | x::xs -> x::xs
 
-let rec coeffPoly l =                                                   //ritorna una lista contenente i coefficienti dei monomi
+let rec coeffPoly l =
     match l with
     | [] -> []
     | x::xs -> monomial_coeff x :: coeffPoly xs
 
-let normalize (p : polynomial) : normalized_polynomial =                //normalizza il polinomio richiamando le funzioni precedentemente definite:
-    match p with                                                        //ordina il polinomio, somma i monomi simili, inserisce entry nulle in caso di necessità ed effettua le dovute conversioni
-    | Polynomial p -> NormalizedPolynomial(List.toArray (rimuoviNull(coeffPoly (pos (sommaSimili (ordina p))))))
+let normalize (p : polynomial) : normalized_polynomial =
+    match p with
+    | Polynomial p -> NormalizedPolynomial(List.toArray (removeNull(coeffPoly (pos (sumSimilar (sortList p))))))
 
-let derivataSemplice m =                                                //deriva il monomio dato assumendo che contenga solo numeri interi
+let derivativeSimple m =
     if monomial_degree m = 0 then Monomial(0Q,0)
     else Monomial (rational((monomial_degree m) * ((monomial_coeff m).N)), (monomial_degree m)-1)
 
-let derivataFratta m =                                                  //deriva il monomio dato assumendo che contenga frazioni
+let derivativeFraction m =
     let num = (monomial_coeff m).N
     let den = (monomial_coeff m).D
     let deg = monomial_degree m
     Monomial(rational(deg * num * den, pown den 2), deg-1)
 
-let derive (p : polynomial) : polynomial =                              //deriva il polinomio
+let derive (p : polynomial) : polynomial =
     match p with
-    | Polynomial p -> Polynomial(List.rev(sommaSimili(ordina(let rec aux p =
-                                                                  match p with 
+    | Polynomial p -> Polynomial(List.rev(sumSimilar(sortList(let rec aux p =
+                                                                  match p with
                                                                   | [] -> []
-                                                                  | x::xs -> if (monomial_coeff x).D = 1 then (derivataSemplice x) :: (aux xs)
-                                                                             else (derivataFratta x) :: (aux xs)
+                                                                  | x::xs -> if (monomial_coeff x).D = 1 then (derivativeSimple x) :: (aux xs)
+                                                                             else (derivativeFraction x) :: (aux xs)
                                                               in aux p))))
 
-let reduce (e : expr) : polynomial =                                    //riceve un'espressione e ritorna un polinomio (derivato, in caso di necessità)
+let reduce (e : expr) : polynomial =
     let rec aux ex =
         match ex with
         | Poly ex -> ex
         | Derive ex -> derive(aux ex)
     in aux e
 
-let unisci p1 p2 =                                                      //da due polinomi ricava un polinomio unico negando ogni monomio del secondo
+let equate p1 p2 =                                                     
     match p1,p2 with
     | Polynomial p1, Polynomial p2 -> Polynomial(let rec aux p1 p2 =
                                                      match p2 with
@@ -145,11 +141,10 @@ let solve2 (np : normalized_polynomial) : (float * float option) option =
                                  let c = float np.[0]
                                  let delta = b ** 2.0 - 4.0 * a * c
                                  if delta < 0.0 then None
-                                 else if delta = 0.0 then 
+                                 else if delta = 0.0 then
                                     let x1 = -b / (2.0 * a)
                                     Some(x1, None)
                                  else
                                     let x1 = (-b + sqrt(delta)) / (2.0 * a)
                                     let x2 = (-b - sqrt(delta)) / (2.0 * a)
                                     Some(x1, Some x2)
-                               

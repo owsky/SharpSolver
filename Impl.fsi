@@ -3,7 +3,7 @@
  * Impl.fsi: file di signature per le implementazioni degli studenti
  * (C) 2018 Alvise Spano' @ Universita' Ca' Foscari di Venezia
  *)
- 
+
 module SharpSolver.Impl
 
 open Prelude
@@ -25,4 +25,4 @@ val solve0 : normalized_polynomial -> bool
 val solve1 : normalized_polynomial -> rational
 val solve2 : normalized_polynomial -> (float * float option) option
 
-val unisci : polynomial -> polynomial -> polynomial
+val equate : polynomial -> polynomial -> polynomial
