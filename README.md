@@ -5,6 +5,9 @@ University of Venice. A project skeleton was given as starting point for the imp
 tasked with filling in the empty function definitions found in Impl.fs. The main function's definition within Main.fs
 was also left blank.
 
+The scope of the project was reduced since it was the very first programming project assigned during the first year of
+the course. Therefore, only the variable <em>x</em> is supported within the polynomials.
+
 ## Supported features
 
 - Polynomial simplification
@@ -18,7 +21,7 @@ The parser and lexer are generated through [FsLexYacc](https://github.com/fsproj
 based on the following:
 
 ```EBNF
-L :=       \\ line
+L :=       \\ line 
   | #s     \\ command
   | E      \\ expression
   | E = E  \\ equation
@@ -40,6 +43,16 @@ c :=
   | n/n    \\ rational number
   | r      \\ real number
 ```
+
+## Output
+
+- [absyn]: Abstract Syntax Tree of the input
+- [pretty]: Prettier version of the Abstract Syntax Tree
+- [redux]: Output of the polynomial reduction, differs from [pretty] only when derivatives need to be computed
+- [norm]: Normalized input, as in the polynomial resulting from the reduction is printed with the monomials sorted non-ascendingly by degree. It also includes missing terms between the highest degree in the resulting polynomial and zero
+- [degree]: Degree of the polynomial after normalization
+- [sol]: Solution of the equation, only shown if the input is an equation
+- [ident]: Solution of identity, only shown if the input is an equation without variables, e.g., 1 = 2
 
 ## Example usage
 
