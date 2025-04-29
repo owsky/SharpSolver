@@ -52,3 +52,5 @@ rule tokenize = parse
     | uint '/' uint { RATIONAL (rational.Parse (lexeme lexbuf)) }
     
     | '#' ['a'-'z']+	{ let s = lexeme lexbuf in CMD (s.Substring (1, s.Length - 1)) }
+    
+    | _ { raise (LexerError (sprintf "unexpected character '%s'" (lexeme lexbuf))) }

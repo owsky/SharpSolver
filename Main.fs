@@ -106,7 +106,7 @@ let interpreter_loop () =
                     | Some(f, None) -> sol $"x = %.15f{f}"
                     | Some(f, Some o) -> sol $"x1 = %.15f{f}, x2 = %.15f{o}"
                 else
-                    raise (NotImplementedException("Equations of degrees higher than 2 are not supported"))
+                    error "Equations of degrees higher than 2 are not supported"
 
         with
         | LexYacc.ParseErrorContextException ctx ->
@@ -129,7 +129,7 @@ let main _ =
             interpreter_loop ()
             0
         with e ->
-            error $"{e.Message}"
+            error $"{e}"
             1
 
     code
