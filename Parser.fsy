@@ -1,13 +1,11 @@
 ﻿
 %{
-
 open SharpSolver.Prelude
 open SharpSolver.Prelude.LexYacc
 open SharpSolver.Absyn
 open SharpSolver.Impl
 
 let neg_monos = List.map monomial_negate
-
 %}
  
 

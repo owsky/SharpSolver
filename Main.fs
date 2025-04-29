@@ -1,28 +1,29 @@
-﻿(*
- * SharpSolver - Progetto di Programmazione e Calcolo a.a. 2018-19
- * Main.fs: console e codice main
- * (C) 2018 Alvise Spano' @ Universita' Ca' Foscari di Venezia
- *)
+﻿module SharpSolver.Main
 
-module SharpSolver.Main
-
-open Microsoft.FSharp.Text.Lexing
+open FSharp.Text.Lexing
 open Absyn
 open System
 open Prelude
-open Microsoft.FSharp.Text
+open FSharp.Text
 open Impl
+
 
 let hout hd fmt =
     if not <| String.IsNullOrWhiteSpace hd then
-        printf "[%s]%s" hd (new String (' ', max 1 (Config.prefix_max_len - String.length hd)))
-        stdout.Flush ()
+        printf $"[{hd}]{String(' ', max 1 (Config.prefix_max_len - String.length hd))}"
+        stdout.Flush()
+
     printfn fmt
 
 let chout col hd fmt =
     let c = Console.ForegroundColor
     Console.ForegroundColor <- col
-    Printf.kprintf (fun s -> hout hd "%s" s; Console.ForegroundColor <- c) fmt
+
+    Printf.kprintf
+        (fun s ->
+            hout hd "%s" s
+            Console.ForegroundColor <- c)
+        fmt
 
 let out fmt = hout "" fmt
 let cout col fmt = chout col "" fmt
@@ -37,73 +38,89 @@ let deg fmt = chout ConsoleColor.Blue "degree" fmt
 
 let interpreter_loop () =
     while true do
-        printf "\n%s" Config.prompt_prefix
-        stdout.Flush ()
-        let input = Console.ReadLine ()
+        printf $"\n{Config.prompt_prefix}"
+        stdout.Flush()
+        let input = Console.ReadLine()
         let lexbuf = LexBuffer<_>.FromString input
 
         let localized_error msg =
             let tabs = new string (' ', Config.prompt_prefix.Length + lexbuf.StartPos.Column)
-            let cuts = new string ('^', let n = lexbuf.EndPos.Column - lexbuf.StartPos.Column in if n > 0 then n else 1)
-            cout ConsoleColor.Yellow "%s%s\n" tabs cuts
-            error "error at %d-%d: %s" lexbuf.StartPos.Column lexbuf.EndPos.Column msg
+
+            let cuts =
+                new string ('^', let n = lexbuf.EndPos.Column - lexbuf.StartPos.Column in if n > 0 then n else 1)
+
+            cout ConsoleColor.Yellow $"{tabs}{cuts}\n"
+            error $"error at {lexbuf.StartPos.Column}-{lexbuf.EndPos.Column}: {msg}"
 
         try
             let line = Parser.line Lexer.tokenize lexbuf
-            #if DEBUG
-            hout "absyn" "%+A" line
-            hout "pretty" "%O" line
-            #endif
+
+            hout "absyn" $"{line}"
+            hout "pretty" $"{line}"
 
             match line with
-            | Cmd "help" ->
-                out "%s" Config.help_text
+            | Cmd "help" -> out $"{Config.help_text}"
 
-            | Cmd ("quit" | "exit") ->
-                out "%s" Config.exit_text
+            | Cmd("quit" | "exit") ->
+                out $"{Config.exit_text}"
                 exit 0
 
-            | Cmd s -> error "unknown command: %s" s
+            | Cmd s -> error $"unknown command: {s}"
 
             | Expr e1 ->
+                // reduce the polynomial
                 let rdc = reduce e1
+                redux $"{rdc}"
+
+                // normalize the polynomial
                 let nor = normalize rdc
+                norm $"{nor}"
+
+                // compute the degree of the polynomial
                 let dgr = normalized_polynomial_degree nor
+                deg $"{dgr}"
 
-                redux "%O" rdc
-                norm "%O" nor
-                deg "%O" dgr
 
-            | Equ (e1, e2) ->
-                let rdc1 = reduce e1
-                let rdc2 = reduce e2
-                let nor = normalize(equate rdc1  rdc2)
-                let dgr = normalized_polynomial_degree nor
+            | Equ(lhs, rhs) ->
+                // reduce the two sides of the equation separately
+                let (Polynomial rdc1) = reduce lhs
+                let rdc2 = reduce rhs
+                redux $"{Polynomial rdc1} = {rdc2}"
 
-                redux "%O = %O" rdc1 rdc2
-                norm "%O = 0" nor
-                deg "%O" dgr
+                // move the right-hand side to the left-hand side and normalize
+                let (Polynomial negRhs) = polynomial_negate rdc2
+                let poly = normalize (Polynomial(rdc1 @ negRhs))
+                norm $"{poly} = 0"
 
-                if dgr = 0 then ident "%O" (solve0 nor)
-                else if dgr = 1 then sol "x = %O" (solve1 nor)
+                // compute the degree of the equation
+                let dgr = normalized_polynomial_degree poly
+                deg $"{dgr}"
+
+                if dgr = 0 then
+                    ident $"{solve0 poly}"
+                else if dgr = 1 then
+                    sol $"x = {solve1 poly}"
                 else if dgr = 2 then
-                    match solve2 nor with
-                    | None -> sol "x = {}"
-                    | Some(f, None) ->
-                        sol "x = %.15f" f
-                    | Some(f, Some o) ->
-                        sol "x1 = %.15f vel x2 = %.15f" f o
-                else raise (NotImplementedException (sprintf "not implemented: %O" line))
+                    match solve2 poly with
+                    | None -> sol "No solutions in the Real set"
+                    | Some(f, None) -> sol $"x = %.15f{f}"
+                    | Some(f, Some o) -> sol $"x1 = %.15f{f}, x2 = %.15f{o}"
+                else
+                    raise (NotImplementedException("Equations of degrees higher than 2 are not supported"))
 
-        with LexYacc.ParseErrorContextException ctx ->
-                let ctx = ctx :?> Parsing.ParseErrorContext<Parser.token>
-                localized_error (sprintf "syntax error%s" (match ctx.CurrentToken with Some t -> sprintf " at token <%O>" t | None -> ""))
+        with
+        | LexYacc.ParseErrorContextException ctx ->
+            let ctx = ctx :?> Parsing.ParseErrorContext<Parser.token>
 
-           | Lexer.LexerError msg -> localized_error msg
+            localized_error (
+                sprintf
+                    "syntax error%s"
+                    (match ctx.CurrentToken with
+                     | Some t -> $" at token <{t}>"
+                     | None -> "")
+            )
 
-           | :? NotImplementedException as e -> error "%O" e
-
-           | e -> localized_error e.Message
+        | Lexer.LexerError msg -> localized_error msg
 
 [<EntryPoint>]
 let main _ =
@@ -111,8 +128,8 @@ let main _ =
         try
             interpreter_loop ()
             0
-        with e -> error "fatal error: %O" e; 1
-    #if DEBUG
-    Console.ReadKey () |> ignore
-    #endif
+        with e ->
+            error $"{e.Message}"
+            1
+
     code
