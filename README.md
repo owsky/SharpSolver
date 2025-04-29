@@ -56,6 +56,9 @@ c :=
 
 ## Example usage
 
+Packaged executables for Windows and Linux are available at the [Releases](https://github.com/owsky/SharpSolver/releases/tag/v1.0.0) section.  
+Running the code may require installing the [.NET Runtime 9.0](https://dotnet.microsoft.com/en-us/download/dotnet/9.0).
+
 ```
 >> x^2 + 1 = x + 2
 [absyn]   x^2 + 1 = x + 2
